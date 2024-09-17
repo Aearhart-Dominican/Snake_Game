@@ -52,13 +52,13 @@ def draw_snake():
 def set_direction():
     global direction
 
-    if event.key == pygame.K_UP and direction != 2:
+    if (event.key == pygame.K_UP or event.key == pygame.K_w) and direction != 2:
         direction = 1
-    elif event.key == pygame.K_DOWN and direction != 1:
+    elif (event.key == pygame.K_DOWN or event.key == pygame.K_s) and direction != 1:
         direction = 2
-    elif event.key == pygame.K_RIGHT and direction != 4:
+    elif (event.key == pygame.K_RIGHT or event.key == pygame.K_d) and direction != 4:
         direction = 3
-    elif event.key == pygame.K_LEFT and direction != 3:
+    elif (event.key == pygame.K_LEFT or event.key == pygame.K_a) and direction != 3:
         direction = 4
 
 def move_snake():
@@ -113,6 +113,28 @@ def draw_gameover():
     pygame.draw.rect(screen, (10, 200, 10), againRect)
     screen.blit(again_img, (SCREEN_WIDTH // 2 -80, SCREEN_HEIGHT // 2 + 10))
     
+def reset():
+    global score
+    global direction
+    global update_snake 
+    global gameOver
+    global food
+    global newFood
+    global newSegment
+    global snake_pos
+
+    score = 0
+    direction = 1
+    update_snake = 0
+    gameOver = False
+    food = [0, 0]
+    newFood = True
+    newSegment = [0, 0]
+
+    snake_pos = [[int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2]]
+    snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size])
+    snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size * 2])
+    snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size * 3])
 
 # Snake
 snake_pos = [[int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2]]
@@ -132,8 +154,6 @@ while running:
     draw_screen()
     draw_score()
 
-    # pygame.draw.circle(screen, (255,255,0), (150,150), 30)
-
     for event in pygame.event.get():
 
         # Exit condition
@@ -143,6 +163,8 @@ while running:
         # key press -> move snake
         elif event.type == pygame.KEYDOWN:
             set_direction()
+            if event.key == pygame.K_r:
+                reset()
 
     # Food
     if newFood:
@@ -189,18 +211,7 @@ while running:
             clicked = False
             pos = pygame.mouse.get_pos()
             if againRect.collidepoint(pos):
-                score = 0
-                direction = 0
-                update_snake = 0
-                gameOver = False
-                food = [0, 0]
-                newFood = True
-                newSegment = [0, 0]
-
-                snake_pos = [[int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2]]
-                snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size])
-                snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size * 2])
-                snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size * 3])
+                reset()
 
 
     draw_snake()
