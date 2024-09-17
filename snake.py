@@ -1,5 +1,5 @@
 # Pygame Setup
-import pygame, random
+import pygame, random, time
 
 pygame.init()
 
@@ -13,7 +13,7 @@ cell_size = 10
 bodyOuter = (100, 100, 200)
 bodyInner = (50, 175, 25)
 headColor = (70,200, 25)
-update_snake = 0
+update_snake = time.time()
 foodColor = (200, 20, 15)
 score = 0
 font = pygame.font.SysFont(None, 40)
@@ -22,10 +22,10 @@ gameOver = False
 againRect = pygame.Rect(SCREEN_WIDTH // 2 -80, SCREEN_HEIGHT // 2, 160, 50)
 clicked = False
 highScore = 0
+snake_speed = .05
 
 # 1 for up, 2 for down, 3 for right, 4 for left
 direction = 1 
-
 
 # Screen setup
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -125,7 +125,7 @@ def reset():
 
     score = 0
     direction = 1
-    update_snake = 0
+    update_snake = time.time()
     gameOver = False
     food = [0, 0]
     newFood = True
@@ -165,6 +165,8 @@ while running:
             set_direction()
             if event.key == pygame.K_r:
                 reset()
+            if event.key == pygame.K_l:
+                running = False
 
     # Food
     if newFood:
@@ -197,8 +199,8 @@ while running:
 
     if gameOver == False:
         # Snake
-        if update_snake > 99:
-            update_snake = 0
+        if time.time() - update_snake > snake_speed:
+            update_snake = time.time()
             move_snake()
 
         gameOver = check_gameOver(gameOver)
@@ -219,8 +221,6 @@ while running:
 
     # Refresh screen
     pygame.display.update()
-
-    update_snake += 1
 
 # End program
 pygame.quit()
