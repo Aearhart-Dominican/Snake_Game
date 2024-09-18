@@ -29,6 +29,7 @@ starting = True
 wrap = False
 wrapRect = pygame.Rect(SCREEN_WIDTH // 2 -80, SCREEN_HEIGHT // 2, 160, 50)
 wrapColor = (0, 255, 0)
+inputdelay = False
 
 # 1 for up, 2 for down, 3 for right, 4 for left
 direction = 1 
@@ -57,18 +58,26 @@ def draw_snake():
 
 def set_direction():
     global direction
+    global inputdelay
 
-    if (event.key == pygame.K_UP or event.key == pygame.K_w) and direction != 2:
-        direction = 1
-    elif (event.key == pygame.K_DOWN or event.key == pygame.K_s) and direction != 1:
-        direction = 2
-    elif (event.key == pygame.K_RIGHT or event.key == pygame.K_d) and direction != 4:
-        direction = 3
-    elif (event.key == pygame.K_LEFT or event.key == pygame.K_a) and direction != 3:
-        direction = 4
+    if inputdelay == False:
+        if event.key == pygame.K_UP or event.key == pygame.K_w and direction !=2:
+            direction = 1
+            inputdelay = True
+        elif event.key == pygame.K_DOWN or event.key == pygame.K_s and direction != 1:
+            direction = 2
+            inputdelay = True
+        elif event.key == pygame.K_RIGHT or event.key == pygame.K_d and direction != 4:
+            direction = 3
+            inputdelay = True
+        elif event.key == pygame.K_LEFT or event.key == pygame.K_a and direction != 3:
+            direction = 4
+            inputdelay = True
 
 def move_snake():
         global snake_pos
+        global inputdelay
+
         snake_pos = snake_pos[-1:] + snake_pos[:-1]
 
         if direction == 1:
@@ -83,6 +92,8 @@ def move_snake():
         elif direction == 4:
             snake_pos[0][1] = snake_pos[1][1]
             snake_pos[0][0] = snake_pos[1][0] - cell_size
+
+        inputdelay = False
 
 def draw_score():
     score_txt = "Score: " + str(score)
