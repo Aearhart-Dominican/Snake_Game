@@ -30,6 +30,12 @@ wrap = False
 wrapRect = pygame.Rect(SCREEN_WIDTH // 2 -80, SCREEN_HEIGHT // 2, 160, 50)
 wrapColor = (0, 255, 0)
 inputdelay = False
+ghostActive = False
+update_ghost = time.time()
+ghostMeter = 100
+ghosting = False
+ghostColor = (0, 255, 0)
+ghostRect = pygame.Rect(SCREEN_WIDTH // 2 -80, SCREEN_HEIGHT // 2 + 70, 160, 50)
 
 # 1 for up, 2 for down, 3 for right, 4 for left
 direction = 1 
@@ -107,11 +113,12 @@ def draw_score():
 def check_gameOver(gameOver):
     
     # has snake hit itself
-    head_count = 0
-    for segment in snake_pos:
-        if snake_pos[0] == segment and head_count > 0:
-            gameOver = True
-        head_count += 1
+    if ghosting == False:
+        head_count = 0
+        for segment in snake_pos:
+            if snake_pos[0] == segment and head_count > 0:
+                gameOver = True
+            head_count += 1
 
     # wall collision
     if wrap:
@@ -151,6 +158,7 @@ def reset():
     global newSegment
     global snake_pos
     global starting
+    global ghosting
 
     score = 0
     direction = 1
@@ -159,6 +167,7 @@ def reset():
     food = [0, 0]
     newFood = True
     newSegment = [0, 0]
+    ghosting = False
 
     snake_pos = [[int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2]]
     snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size])
@@ -178,8 +187,10 @@ def draw_homescreen():
     screen.blit(title_img, (SCREEN_WIDTH // 2 -80, 50))
 
     pygame.draw.rect(screen, wrapColor, wrapRect)
+    pygame.draw.rect(screen, ghostColor, ghostRect)
 
     textRender("Infinite Mode", (115, 15, 115), 35, (SCREEN_WIDTH // 2 - 80, SCREEN_HEIGHT // 2 + 10))
+    textRender("Ghost Mode", (115, 15, 115), 35, (SCREEN_WIDTH // 2 - 70, SCREEN_HEIGHT // 2 + 80))
     textRender("Press 'W' to Start", score_color, 20, (SCREEN_WIDTH // 2 - 50, 90))
     textRender("Press 'H' for Home", score_color, 20, (SCREEN_WIDTH // 2 - 50, 110))
     textRender("Press 'L' to Leave", score_color, 20, (SCREEN_WIDTH // 2 - 50, 130))
@@ -209,16 +220,7 @@ def play_start():
         pygame.display.update()
 
         time.sleep(.75)
-            
-            
-
-
-# Snake
-# snake_pos = [[int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2]]
-# snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size])
-# snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size * 2])
-# snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size * 3])
-
+    
 # Food
 food = [0, 0]
 newFood = True
@@ -261,6 +263,13 @@ while running:
                     else:
                         wrapColor = (255, 0, 0)
                         wrap = True
+                if ghostRect.collidepoint(pos):
+                    if ghostActive:
+                        ghostColor = (0, 255, 0)
+                        ghostActive = False
+                    else:
+                        ghostColor = (255, 0, 0)
+                        ghostActive = True
 
     draw_score()
 
@@ -272,7 +281,9 @@ while running:
 
         # key press -> move snake
         elif event.type == pygame.KEYDOWN:
+
             set_direction()
+
             if event.key == pygame.K_r:
                 reset()
             if event.key == pygame.K_h:
@@ -280,6 +291,14 @@ while running:
                 reset()
             if event.key == pygame.K_l:
                 running = False
+            if event.key == pygame.K_SPACE:
+                bodyInner = [150, 8, 194]
+                bodyOuter = [69, 2, 89]
+                headColor = [223, 141, 247]
+                if ghosting:
+                    ghosting = False
+                elif ghostMeter > 50:
+                    ghosting = True
 
     # Food
     if newFood:
@@ -310,11 +329,33 @@ while running:
     if score > highScore:
         highScore = score
 
+    if ghostActive:
+        pygame.draw.rect(screen, (0, 0, 0), (SCREEN_WIDTH // 2 -80, SCREEN_HEIGHT - 60, 160, 15))
+        if ghostMeter > 50:
+            pygame.draw.rect(screen, (255, 0, 10), (SCREEN_WIDTH // 2 -80, SCREEN_HEIGHT - 60, ghostMeter * 1.6, 15))
+        else:
+            pygame.draw.rect(screen, (252, 161, 23), (SCREEN_WIDTH // 2 -80, SCREEN_HEIGHT - 60, ghostMeter * 1.6, 15))
+
+        if ghosting == False:
+            bodyOuter = (100, 100, 200)
+            bodyInner = (50, 175, 25)
+            headColor = (70,200, 25) 
+
+        if time.time() - update_ghost > snake_speed / 2:
+            update_ghost = time.time()
+            if ghosting and ghostMeter > 0:
+                ghostMeter -= 1
+            elif ghosting == False and ghostMeter < 100:
+                ghostMeter += 1
+
+        if ghostMeter <= 0:
+            ghosting = False
+
     if gameOver == False:
         # Snake
         if time.time() - update_snake > snake_speed:
             update_snake = time.time()
-            move_snake()
+            move_snake()           
 
         gameOver = check_gameOver(gameOver)
 
