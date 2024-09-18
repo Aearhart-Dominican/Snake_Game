@@ -17,12 +17,17 @@ update_snake = time.time()
 foodColor = (200, 20, 15)
 score = 0
 font = pygame.font.SysFont(None, 40)
+title = pygame.font.SysFont(None, 90)
 score_color = (0, 0, 0)
 gameOver = False
 againRect = pygame.Rect(SCREEN_WIDTH // 2 -80, SCREEN_HEIGHT // 2, 160, 50)
 clicked = False
 highScore = 0
 snake_speed = .05
+started = False
+wrap = False
+wrapRect = pygame.Rect(SCREEN_WIDTH // 2 -80, SCREEN_HEIGHT // 2, 160, 50)
+wrapColor = (0, 255, 0)
 
 # 1 for up, 2 for down, 3 for right, 4 for left
 direction = 1 
@@ -97,8 +102,19 @@ def check_gameOver(gameOver):
         head_count += 1
 
     # wall collision
-    if snake_pos[0][0] < 0 or snake_pos[0][0] > SCREEN_WIDTH or snake_pos[0][1] < 0 or snake_pos[0][1] > SCREEN_HEIGHT:
-        gameOver = True
+    if wrap:
+        if snake_pos[0][0] < 0:
+            snake_pos[0][0] += SCREEN_WIDTH
+        elif snake_pos[0][0] > SCREEN_WIDTH:
+            snake_pos[0][0] -= SCREEN_WIDTH + 10
+        elif snake_pos[0][1] < 0:
+            snake_pos[0][1] += SCREEN_HEIGHT
+        elif snake_pos[0][1] > SCREEN_HEIGHT:
+            snake_pos[0][1] -= SCREEN_HEIGHT + 10
+    else:
+        if snake_pos[0][0] < 0 or snake_pos[0][0] > SCREEN_WIDTH or snake_pos[0][1] < 0 or snake_pos[0][1] > SCREEN_HEIGHT:
+            gameOver = True
+        
 
     return gameOver
 
@@ -136,6 +152,24 @@ def reset():
     snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size * 2])
     snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size * 3])
 
+def textRender(text, color, fontSize, pos):
+    font = pygame.font.SysFont(None, fontSize)
+    text_img = font.render(text, True, color)
+    screen.blit(text_img, pos)
+
+def draw_homescreen():
+    global wrap, wrapColor, wrapRect
+
+    title_txt = "Python Snake"
+    title_img = font.render(title_txt, True, score_color)
+    screen.blit(title_img, (SCREEN_WIDTH // 2 -80, 50))
+
+    pygame.draw.rect(screen, wrapColor, wrapRect)
+
+    textRender("Infinite Mode", (115, 15, 115), 35, (SCREEN_WIDTH // 2 - 80, SCREEN_HEIGHT // 2 + 10))
+    textRender("Press 'W' to Start", score_color, 20, (SCREEN_WIDTH // 2 - 50, 100))
+        
+
 # Snake
 snake_pos = [[int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2]]
 snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size])
@@ -150,8 +184,39 @@ newSegment = [0, 0]
 
 running = True
 while running:
-
+    
     draw_screen()
+
+    while started == False:
+        draw_screen()
+        draw_homescreen()
+        pygame.display.update()
+        for event in pygame.event.get():
+
+            if event.type == pygame.QUIT:
+                running = False
+                started = True
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_w:
+                    started = True
+                if event.key == pygame.K_l:
+                    running = False
+                    started = True
+
+            if event.type == pygame.MOUSEBUTTONDOWN and clicked == False:
+                clicked = True
+            if event.type == pygame.MOUSEBUTTONUP and clicked == True:
+                clicked = False
+                pos = pygame.mouse.get_pos()
+                if wrapRect.collidepoint(pos):
+                    if wrap:
+                        wrapColor = (0, 255, 0)
+                        wrap = False
+                    else:
+                        wrapColor = (255, 0, 0)
+                        wrap = True
+
     draw_score()
 
     for event in pygame.event.get():
@@ -165,6 +230,9 @@ while running:
             set_direction()
             if event.key == pygame.K_r:
                 reset()
+            if event.key == pygame.K_h:
+                reset()
+                started = False
             if event.key == pygame.K_l:
                 running = False
 
