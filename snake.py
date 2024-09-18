@@ -25,6 +25,7 @@ clicked = False
 highScore = 0
 snake_speed = .05
 started = False
+starting = True
 wrap = False
 wrapRect = pygame.Rect(SCREEN_WIDTH // 2 -80, SCREEN_HEIGHT // 2, 160, 50)
 wrapColor = (0, 255, 0)
@@ -138,6 +139,7 @@ def reset():
     global newFood
     global newSegment
     global snake_pos
+    global starting
 
     score = 0
     direction = 1
@@ -167,14 +169,44 @@ def draw_homescreen():
     pygame.draw.rect(screen, wrapColor, wrapRect)
 
     textRender("Infinite Mode", (115, 15, 115), 35, (SCREEN_WIDTH // 2 - 80, SCREEN_HEIGHT // 2 + 10))
-    textRender("Press 'W' to Start", score_color, 20, (SCREEN_WIDTH // 2 - 50, 100))
+    textRender("Press 'W' to Start", score_color, 20, (SCREEN_WIDTH // 2 - 50, 90))
+    textRender("Press 'H' for Home", score_color, 20, (SCREEN_WIDTH // 2 - 50, 110))
+    textRender("Press 'L' to Leave", score_color, 20, (SCREEN_WIDTH // 2 - 50, 130))
+
+def play_start():
+    global starting
+    global snake_pos
+    
+    timer = time.time()
+    update = 0
+    seconds = 0
+    snake_pos = [[int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 - cell_size * 5]]
+    snake_pos.append([SCREEN_WIDTH / 2, snake_pos[-1][1] + cell_size])
+    snake_pos.append([SCREEN_WIDTH / 2, snake_pos[-1][1] + cell_size])
+    snake_pos.append([SCREEN_WIDTH / 2, snake_pos[-1][1] + cell_size])
+
+    for x in range(0, 4):
         
+        draw_screen()
+        draw_snake()
+        move_snake()
+
+        pygame.draw.rect(screen, (92, 57, 0), (SCREEN_WIDTH // 2 - 10, SCREEN_HEIGHT // 2 - cell_size * 4, cell_size + 20, 60))
+        pygame.draw.rect(screen, (92, 57, 0), (SCREEN_WIDTH // 2 - 25, SCREEN_HEIGHT // 2 - cell_size * 4, 60, 15))
+        pygame.draw.rect(screen, (92, 57, 0), (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2, 40, 20))
+
+        pygame.display.update()
+
+        time.sleep(.75)
+            
+            
+
 
 # Snake
-snake_pos = [[int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2]]
-snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size])
-snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size * 2])
-snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size * 3])
+# snake_pos = [[int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2]]
+# snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size])
+# snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size * 2])
+# snake_pos.append([int(SCREEN_WIDTH) / 2, SCREEN_HEIGHT / 2 + cell_size * 3])
 
 # Food
 food = [0, 0]
@@ -199,7 +231,9 @@ while running:
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_w:
+                    play_start()
                     started = True
+
                 if event.key == pygame.K_l:
                     running = False
                     started = True
@@ -231,8 +265,8 @@ while running:
             if event.key == pygame.K_r:
                 reset()
             if event.key == pygame.K_h:
-                reset()
                 started = False
+                reset()
             if event.key == pygame.K_l:
                 running = False
 
