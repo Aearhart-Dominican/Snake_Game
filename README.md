@@ -1,1 +1,1 @@
-Snake game pygame practice project
+Snake game pygame practice project, v2 stable in progress
