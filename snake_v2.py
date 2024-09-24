@@ -36,13 +36,83 @@ MIDDLE = [SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2]
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Snake Game")
 
+# Variables
+# Colors
+BLK = (0, 0, 0)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+
+background_color = (250, 200, 150)
+homescreen_color = (253, 189, 255)
+options_color = (252, 189, 244)
+score_color = BLK
+
+wrap_on = (255, 20, 20)
+wrap_off = (20, 255, 20)
+wrap_color = wrap_off
+
+ghost_on = (255, 20, 20)
+ghost_off = (20, 255, 20)
+ghost_color = ghost_off
+
+# External Variables
+clicked = False
+cell_size = SCREEN_AVG // 50
+
+# Gameloop Variables
+reset = True
+prev = time.time()
+game_speed = .05
+menu_speed = .1
+food_count = 1
+player_count = 1
+
+# Score Variables
+high_score = 0
+score_cycle = -1
+score_timer = time.time()
+score_cycle_speed = 2
+
+# Scene Toggles
+play_start = True
+run_snake = True
+show_options = False
+
+# Game Toggles
+player_collision = True
+wrap = False
+ghost_mode_on = False
+single_player_mode = True
+
+# Game Options
+snake_length = 3
+ghost_timer = 50
+
+# Text Size
+score_font_size = SCREEN_AVG // 20
+if score_font_size > 35:
+    score_font_size = 35
+elif score_font_size < 5:
+    score_font_size = 5
+
+title_font_size =  SCREEN_WIDTH // 10
+if title_font_size > 90:
+    title_font_size = 90
+elif title_font_size < 10:
+    title_font_size = 10
+
+# Fonts
+score_font = pygame.font.Font("./fonts/Silkscreen/slkscrb.ttf", score_font_size)
+title_font = pygame.font.Font("./fonts/Silkscreen/slkscrb.ttf", title_font_size)
+
+
 # Classes
 # Contains the methods and variables for Ghost Mode
 class Ghost():
     # Instantiate Ghost object
     def __init__(self):
         self.is_ghost = False
-        self.ghost_key = pygame.K_SPACE
+        self.ghost_key = pygame.K_LSHIFT
         self.ghost_time = ghost_timer
         self.ghost_rect = pygame.rect.Rect(0, 0, 0, 0)
 
@@ -98,7 +168,6 @@ class Snake(Ghost):
         self.tail = tail
         self.turn = turn
         Ghost.__init__(self)
-
 
     # Snake Methods
     # populate snake_pos
@@ -283,7 +352,7 @@ class Snake(Ghost):
                 for snake in players:
                     head_count = 0
                     for segment in snake.snake_pos:
-                        if head == [segment[0], segment[1]] and head_count > 0:
+                        if head == [segment[0], segment[1]] and head_count > 0 and snake.is_ghost == False:
                             # Snake hit something
                             self.game_over = True
                         head_count += 1
@@ -292,7 +361,7 @@ class Snake(Ghost):
                 head_count = 0
                 for segment in self.snake_pos:
                     if [self.snake_pos[0][0], self.snake_pos[0][1]] == [segment[0], segment[1]] and head_count > 0:
-                        # Snake itself
+                        # Snake hit itself
                         self.game_over = True
                     head_count += 1
 
@@ -356,11 +425,11 @@ def cell_align(int):
 # Create a sprite with transparent background
 def make_img(link):
     img = pygame.image.load(link).convert()
-    img.set_colorkey((0,0,0))
+    img.set_colorkey(BLK)
     return img
 
 # Generate text as an array of [renderd text, rectangle centered around text]
-def make_text(text, font_size, x, y, color = (0, 0, 0), font = "./fonts/Silkscreen/slkscr.ttf"):
+def make_text(text, font_size, x, y, color = BLK, font = "./fonts/Silkscreen/slkscr.ttf"):
     text_info = []
 
     text_font = pygame.font.Font(font, font_size)
@@ -371,6 +440,27 @@ def make_text(text, font_size, x, y, color = (0, 0, 0), font = "./fonts/Silkscre
     return text_info
 
 # Game Functions
+# makes a decending list of items
+def gen_text_list(textlist, size, x, y, color = BLK, font = "./fonts/Silkscreen/slkscr.ttf"):
+    new_textlist = []
+
+    # Create text and coordinates start
+    text_font = pygame.font.Font(font, size)
+    text_rend = text_font.render(textlist[0], True, color)
+    text_rect = text_rend.get_rect(center = (x, y))
+    new_textlist.append([text_rend, text_rect])
+
+    textlist.remove(textlist[0])
+
+    # Create the rest of the text off of start coordinates
+    for text in textlist:
+        text_font = pygame.font.Font(font, size)
+        text_rend = text_font.render(text, True, color)
+        text_rect = text_rend.get_rect(center = (x, new_textlist[-1][1].y + new_textlist[-1][1].height * 2))
+        new_textlist.append([text_rend, text_rect])
+    
+    return new_textlist
+
 # Creates a list of instructions and coordinates for the home screen to auto populate
 def gen_instructions(textlist):
     # Text details
@@ -420,6 +510,14 @@ def gen_players(player_count):
                                                       cell_size // 2)
             players[-1].ghost_rect.center = (players[-1].snake_pos[0][0] + cell_size // 2, SCREEN_HEIGHT - cell_size)
 
+    # Assign Player 2 controls
+    if len(players) > 1:
+        players[1].up_key = pygame.K_UP
+        players[1].down_key = pygame.K_DOWN
+        players[1].left_key = pygame.K_LEFT
+        players[1].right_key = pygame.K_RIGHT
+        players[1].ghost_key = pygame.K_RSHIFT
+
     return players
 
 # Creates new Food based on food count
@@ -439,7 +537,6 @@ def draw_score():
     else:
         score_display = score_font.render("Score: 0", True, (score_color))
 
-    high_score_display = score_font.render(f"High Score: {high_score}", True, (score_color))
     screen.blit(score_display, (0, 0))
     screen.blit(high_score_display, (0, score_font_size))
 
@@ -451,38 +548,9 @@ def draw_gameover():
     pygame.draw.rect(screen, (200, 200, 200), play[1])
     screen.blit(play[0], play[1])
 
-# Variables
-# Colors
-background_color = (250, 200, 150)
-homescreen_color = (253, 189, 255)
-score_color = (0, 0, 0)
-
-wrap_on = (255, 20, 20)
-wrap_off = (20, 255, 20)
-wrap_color = wrap_off
-
-ghost_on = (255, 20, 20)
-ghost_off = (20, 255, 20)
-ghost_color = ghost_off
-
-
-# Text Size
-score_font_size = SCREEN_AVG // 20
-if score_font_size > 35:
-    score_font_size = 35
-elif score_font_size < 5:
-    score_font_size = 5
-
-title_font_size =  SCREEN_WIDTH // 10
-if title_font_size > 90:
-    title_font_size = 90
-elif title_font_size < 10:
-    title_font_size = 10
-
-# Fonts
-score_font = pygame.font.Font("./fonts/Silkscreen/slkscrb.ttf", score_font_size)
-title_font = pygame.font.Font("./fonts/Silkscreen/slkscrb.ttf", title_font_size)
-
+# Function Dependent Variables
+# Score Text
+high_score_display = score_font.render(f"High Score: {high_score}", True, (score_color))
 
 # Homescreen Text
 home_title = title_font.render("Python Snake", True, title_font_size)
@@ -493,6 +561,8 @@ instructions = gen_instructions(["Press Any Key To Start",
                                  "Press R for Restart",
                                  "Press L or Esc to Leave"])
 
+options = make_text("Options", title_font_size // 3, int(SCREEN_WIDTH * .9), SCREEN_HEIGHT - 2 * cell_size)
+
 # Gamemode Text
 inf_mode = make_text("Infinite Mode", title_font_size // 2, SCREEN_WIDTH // 4, SCREEN_HEIGHT // 2)
 ghost_mode = make_text("Ghost Mode", title_font_size // 2, SCREEN_WIDTH // 4 * 3, SCREEN_HEIGHT // 2)
@@ -500,32 +570,31 @@ ghost_mode = make_text("Ghost Mode", title_font_size // 2, SCREEN_WIDTH // 4 * 3
 # Game Over Text
 play =  make_text("Play Again?", int(title_font_size * .75), MIDDLE[0], MIDDLE[1])
 
-# External Variables
-clicked = False
-cell_size = SCREEN_AVG // 50
+# Option Screen Text
+options_title = make_text("Options", title_font_size, MIDDLE[0], 2 * cell_size)
+controls_title = make_text("Controls", int(title_font_size * .7), MIDDLE[0], 22 * cell_size)
+selector = make_text("X", title_font_size // 2, int(SCREEN_WIDTH * .3) - cell_size, 18 * cell_size)
+back = make_text("Back", title_font_size // 3, int(SCREEN_WIDTH * .9), SCREEN_HEIGHT - 2 * cell_size)
 
-# Gameloop Variables
-reset = True
-prev = time.time()
-game_speed = .05
-food_count = 50
-player_count = 1
+# Food option and increment text
+food_text = make_text("Food Count", title_font_size // 2, MIDDLE[0], 6 * cell_size)
+food_count_add = make_text(">", title_font_size // 3, MIDDLE[0] + 2 * cell_size, 7.5 * cell_size)
+food_count_subtract = make_text("<", title_font_size // 3, MIDDLE[0] - 2 * cell_size, 7.5 * cell_size)
+food_count_add_big = make_text(">>", title_font_size // 3, MIDDLE[0] + 4 * cell_size, 7.5 * cell_size)
+food_count_subtract_big = make_text("<<", title_font_size // 3, MIDDLE[0] - 4 * cell_size, 7.5 * cell_size)
 
-# Score Variables
-high_score = 0
-score_cycle = -1
-score_timer = time.time()
-score_cycle_speed = 2
+# Collision Text
+player_collision_text = make_text("Player Collision", title_font_size // 2, MIDDLE[0], 12 * cell_size)
 
-# Game Toggles
-play_start = True
-player_collision = True
-wrap = False
-ghost_mode_on = False
+# Player Amount Text
+single_player = make_text("Single Player", title_font_size // 2, int(SCREEN_WIDTH * .3), 17 * cell_size)
+two_player = make_text("Two Player", title_font_size // 2, int(SCREEN_WIDTH * .7), 17 * cell_size)
 
-# Game Options
-snake_length = 3
-ghost_timer = 50
+# Player Control List
+player_one_controls = [f"PLAYER 1", f"Up: W", f"Down: S", f"Left: A", f"Right: D", f"Ghost: LShift"]
+player_one_controls_text = gen_text_list(player_one_controls, title_font_size // 3, int(SCREEN_WIDTH * .3), 24 * cell_size)
+player_two_controls = [f"PLAYER 2", f"Up: Up Arrow", f"Down: Down Arrow", f"Left: Left Arrow", f"Right: Right Arrow", f"Ghost: RShift"]
+player_two_controls_text = gen_text_list(player_two_controls, title_font_size // 3, int(SCREEN_WIDTH * .7), 24 * cell_size)
 
 # Sprite Initialization
 body = pygame.transform.scale(make_img("./sprites/body.png"), (cell_size, cell_size))
@@ -535,7 +604,7 @@ turn = pygame.transform.scale(make_img("./sprites/turn.png"), (cell_size, cell_s
 
 ghost_body = pygame.transform.scale(make_img("./sprites/ghost_body.png"), (cell_size, cell_size))
 ghost_head = pygame.transform.scale(make_img("./sprites/ghost_head.png"), (cell_size, cell_size))
-ghost_tail = pygame.transform.scale(make_img("./sprites/ghost_tail_alt2.png"), (cell_size, cell_size))
+ghost_tail = pygame.transform.scale(make_img("./sprites/ghost_tail.png"), (cell_size, cell_size))
 ghost_turn = pygame.transform.scale(make_img("./sprites/ghost_turn.png"), (cell_size, cell_size))
 
 apple = pygame.transform.scale(make_img("./sprites/Abble.png"), (cell_size, cell_size))
@@ -548,174 +617,314 @@ while running:
     
     # Homescreen Display
     while play_start:
+        # Limits Loop Executions for efficiency
+        if time.time() - prev > game_speed:
+            prev = time.time()
+                
+            draw_screen(homescreen_color)
 
-        draw_screen(homescreen_color)
+            # Display Title
+            screen.blit(home_title, title_rect)
 
-        # Display Title
-        screen.blit(home_title, title_rect)
+            # Display Game Options
+            pygame.draw.rect(screen, wrap_color, inf_mode[1])
+            screen.blit(inf_mode[0], inf_mode[1])
+            pygame.draw.rect(screen, ghost_color, ghost_mode[1])
+            screen.blit(ghost_mode[0], ghost_mode[1])
 
-        # Display Game Options
-        pygame.draw.rect(screen, wrap_color, inf_mode[1])
-        screen.blit(inf_mode[0], inf_mode[1])
-        pygame.draw.rect(screen, ghost_color, ghost_mode[1])
-        screen.blit(ghost_mode[0], ghost_mode[1])
+            screen.blit(options[0], options[1])
 
-        # Display Game Instructions
-        for instrution in instructions:
-            screen.blit(instrution[0], instrution[1])
+            # Display Game Instructions
+            for instrution in instructions:
+                screen.blit(instrution[0], instrution[1])
 
-        # Event Handler
-        for event in pygame.event.get():
+            # Event Handler
+            for event in pygame.event.get():
 
-            # Allow close window with exit button
-            if event.type == pygame.QUIT:
-                play_start = False
-                running = False
-            
-            # Start game on key press
-            if event.type == pygame.KEYDOWN:
-                play_start = False
-
-                # Exit game from homescreen
-                if event.key == pygame.K_l or event.key == pygame.K_ESCAPE:
+                # Allow close window with exit button
+                if event.type == pygame.QUIT:
+                    play_start = False
+                    run_snake = False
                     running = False
-
-            # Check for mouse click
-            if event.type == pygame.MOUSEBUTTONDOWN and clicked == False:
-                clicked = True
-            if event.type == pygame.MOUSEBUTTONUP and clicked == True:
-                clicked = False
-                # Get mouse position
-                pos = pygame.mouse.get_pos()
-                # Check if mouse clicked on game option and toggle it
-                if inf_mode[1].collidepoint(pos):
-                    if wrap:
-                        wrap = False
-                        wrap_color = wrap_off
-                    else:
-                        wrap = True
-                        wrap_color = wrap_on
-                if ghost_mode[1].collidepoint(pos):
-                    if ghost_mode_on:
-                        ghost_mode_on = False
-                        ghost_color = ghost_off
-                    else:
-                        ghost_mode_on = True
-                        ghost_color = ghost_on
-
-        pygame.display.update()
-
-    # Reset Variables for Quick Restart
-    if reset:
-        players = gen_players(player_count)
-        food = gen_food(food_count)
-        reset = False
-
-    draw_screen(background_color)
-
-    # Render Snakes and update High Score
-    for snake in players:
-        # Update High Score
-        if snake.score > high_score:
-            high_score = snake.score
-
-        # Draw Ghost mode meters for snakes
-        if ghost_mode_on:
-            snake.draw_ghost_meter()
-
-        snake.draw_snake()
-
-    # Event Handler
-    for event in pygame.event.get():
-
-        # Allow close window with exit button
-        if event.type == pygame.QUIT:
-            running = False
-        
-        # Read Key Presses
-        if event.type == pygame.KEYDOWN:
-
-            for snake in players:
-                # Set Snake directions
-                snake.set_direction()
-
-                # Set Ghost Mode if snake's ghost key is pressed
-                snake.ghost()
                 
-            # Initiate Reset
-            if event.key == pygame.K_r:
-                reset = True 
-            
-            # Return to Homescreen
-            if event.key == pygame.K_h:
-                reset = True 
-                play_start = True
-            
-            # Leave Game
-            if event.key == pygame.K_l or event.key == pygame.K_ESCAPE:
-                running = False 
+                # Start game on key press
+                if event.type == pygame.KEYDOWN:
+                    play_start = False
+                    run_snake = True
 
-        # Check for mouse click
-        if event.type == pygame.MOUSEBUTTONDOWN and clicked == False:
-            clicked = True
-        if event.type == pygame.MOUSEBUTTONUP and clicked == True:
-            clicked = False
-            # Get mouse position
-            pos = pygame.mouse.get_pos()
-            # Check for clicked Play Again and restart
-            if play[1].collidepoint(pos) and players[0].game_over:
-                reset = True
-                    
-    # Snake Update Timer (removes FPS Dependence)
-    if time.time() - prev > game_speed:
-        prev = time.time()
+                    # Exit game from homescreen
+                    if event.key == pygame.K_l or event.key == pygame.K_ESCAPE:
+                        run_snake = False
+                        running = False
 
-        # Moves All Snakes
-        for snake in players:
-            # Checks for Game Over Condition
-            if snake.game_over:
-                if len(players) > 1:
-                    players.remove(snake)
+                    if event.key == pygame.K_o:
+                        play_start = False
+                        show_options = True
+                        run_snake = False
 
-            else:
-                snake.move_snake()
-                
-                # Lowers or refills Ghost Meter based on use
-                if ghost_mode_on:
-                    if snake.is_ghost:
-                        if snake.ghost_time > 0:
-                            snake.ghost_time -= 1
+                # Check for mouse click
+                if event.type == pygame.MOUSEBUTTONDOWN and clicked == False:
+                    clicked = True
+                if event.type == pygame.MOUSEBUTTONUP and clicked == True:
+                    clicked = False
+                    # Get mouse position
+                    pos = pygame.mouse.get_pos()
+                    # Check if mouse clicked on game option and toggle it
+                    if inf_mode[1].collidepoint(pos):
+                        if wrap:
+                            wrap = False
+                            wrap_color = wrap_off
                         else:
-                            snake.is_ghost = False
-                            snake.ghostify()
-                    elif snake.ghost_time < ghost_timer:
-                        snake.ghost_time += 1
+                            wrap = True
+                            wrap_color = wrap_on
+                    if ghost_mode[1].collidepoint(pos):
+                        if ghost_mode_on:
+                            ghost_mode_on = False
+                            ghost_color = ghost_off
+                        else:
+                            ghost_mode_on = True
+                            ghost_color = ghost_on
+                    if options[1].collidepoint(pos):
+                        play_start = False
+                        show_options = True
+                        run_snake = False
 
-    # Updates Score to Display next Player
-    if len(players) > 1:
-        if time.time() - score_timer > score_cycle_speed:
-            score_timer = time.time()
-            score_cycle = (score_cycle + 1) % len(players)
-    else:
-        score_cycle = 0
+            pygame.display.update()
 
-    draw_score()
+    # Options Screen
+    while show_options:
+        # Limits Loop Executions for efficiency
+        if time.time() - prev > game_speed:
+            prev = time.time()
 
-    # Food Handler
-    for num in food:
-        num.make_food()
-        num.draw_food()
+            draw_screen(options_color)
+            # Display Page Headers
+            screen.blit(options_title[0], options_title[1])
+            screen.blit(controls_title[0], controls_title[1])
+            screen.blit(back[0], back[1])
 
-        # Check if Snake ate Food
-        for snake in players:
-            num.food_eaten(snake)
+            # Display Options
+            # Food add and subtract text, controls, and outlines
+            screen.blit(food_text[0], food_text[1])
+            food_count_text = make_text(str(food_count), title_font_size // 3, MIDDLE[0], 7.5 * cell_size)
+            screen.blit(food_count_text[0], food_count_text[1])
+            pygame.draw.rect(screen, BLK, food_count_add[1], 2)
+            screen.blit(food_count_add[0], food_count_add[1])
+            pygame.draw.rect(screen, BLK, food_count_subtract[1], 2)
+            screen.blit(food_count_subtract[0], food_count_subtract[1])
+            pygame.draw.rect(screen, BLK, food_count_add_big[1], 2)
+            screen.blit(food_count_add_big[0], food_count_add_big[1])
+            pygame.draw.rect(screen, BLK, food_count_subtract_big[1], 2)
+            screen.blit(food_count_subtract_big[0], food_count_subtract_big[1])
 
-    # Check for Game Over
-    if len(players) < 2 and players[0].game_over:
-        draw_gameover()
+            # Collsion Text and Selector
+            screen.blit(player_collision_text[0], player_collision_text[1])
+            if player_collision:
+                selector[1].center = (MIDDLE[0] - cell_size * 12, 12 * cell_size)
+                screen.blit(selector[0], selector[1])
 
-    # Refresh the Screen
-    pygame.display.update()
+            # Player Amount Options
+            screen.blit(single_player[0], single_player[1])
+            screen.blit(two_player[0], two_player[1])
+
+            # Player Mode Selector
+            if single_player_mode:
+                selector[1].center = (int(SCREEN_WIDTH * .3) - cell_size * 11, 17 * cell_size)
+                screen.blit(selector[0], selector[1])
+            else:
+                selector[1].center = (int(SCREEN_WIDTH * .7) - cell_size * 9, 17 * cell_size)
+                screen.blit(selector[0], selector[1])
+            
+            # Player Controls
+            for control in player_one_controls_text:
+                screen.blit(control[0], control[1])
+            for control in player_two_controls_text:
+                screen.blit(control[0], control[1])
+
+            # Event Handler
+            for event in pygame.event.get():
+
+                # Allow close window with exit button
+                if event.type == pygame.QUIT:
+                    show_options = False
+                    play_start = False
+                    run_snake = False
+                    running = False
+                
+                # Start game on key press
+                if event.type == pygame.KEYDOWN:
+
+                    # Exit game from homescreen
+                    if event.key == pygame.K_l:
+                        play_start = False
+                        show_options = False
+                        run_snake = False
+                        running = False
+
+                    if  event.key == pygame.K_ESCAPE or event.key == pygame.K_DELETE or event.key == pygame.K_b:
+                        show_options = False
+                        run_snake = False
+                        play_start = True
+
+                # Check for mouse click
+                if event.type == pygame.MOUSEBUTTONDOWN and clicked == False:
+                    clicked = True
+                if event.type == pygame.MOUSEBUTTONUP and clicked == True:
+                    clicked = False
+                    # Get mouse position
+                    pos = pygame.mouse.get_pos()
+                    # Check if mouse clicked on game option and toggle it
+                    if back[1].collidepoint(pos):
+                        play_start = True
+                        show_options = False
+                        run_snake = False
+
+                    # Add or Subract Food Value
+                    if food_count_add[1].collidepoint(pos):
+                        food_count += 1
+                    if food_count_add_big[1].collidepoint(pos):
+                        food_count += 5
+                    if food_count_subtract[1].collidepoint(pos):
+                        if food_count > 1:
+                            food_count -= 1
+                    if food_count_subtract_big[1].collidepoint(pos):
+                        if food_count > 5:
+                            food_count -= 5
+
+                    # Turn on and off Collision
+                    if player_collision_text[1].collidepoint(pos):
+                        if player_collision:
+                            player_collision = False
+                        else:
+                            player_collision = True
+
+                    # Turn On Single or Two Player
+                    if single_player[1].collidepoint(pos):
+                        single_player_mode = True
+                        player_count = 1
+                    if two_player[1].collidepoint(pos):
+                        single_player_mode = False
+                        player_count = 2
+
+            pygame.display.update()
+
+    # Snake Game Loop
+    while run_snake:
+        # Snake Update Timer (removes FPS Dependence)
+        if time.time() - prev > game_speed:
+            prev = time.time()
+
+            # Reset Variables for Quick Restart
+            if reset:
+                players = gen_players(player_count)
+                food = gen_food(food_count)
+                reset = False
+
+            draw_screen(background_color)
+        
+            # Render Snakes and update High Score
+            for snake in players:
+                # Update High Score
+                if snake.score > high_score:
+                    high_score = snake.score
+                    high_score_display = score_font.render(f"High Score {snake.name}: {high_score}", True, (score_color))
+
+                # Draw Ghost mode meters for snakes
+                if ghost_mode_on:
+                    snake.draw_ghost_meter()
+
+                snake.draw_snake()
+
+            # Event Handler
+            for event in pygame.event.get():
+
+                # Allow close window with exit button
+                if event.type == pygame.QUIT:
+                    run_snake = False
+                    running = False
+                
+                # Read Key Presses
+                if event.type == pygame.KEYDOWN:
+
+                    for snake in players:
+                        # Set Snake directions
+                        snake.set_direction()
+
+                        # Set Ghost Mode if snake's ghost key is pressed
+                        snake.ghost()
+                        
+                    # Initiate Reset
+                    if event.key == pygame.K_r:
+                        reset = True 
+                    
+                    # Return to Homescreen
+                    if event.key == pygame.K_h:
+                        reset = True 
+                        play_start = True
+                        run_snake = False
+                    
+                    # Leave Game
+                    if event.key == pygame.K_l or event.key == pygame.K_ESCAPE:
+                        run_snake = False
+                        running = False 
+
+                # Check for mouse click
+                if event.type == pygame.MOUSEBUTTONDOWN and clicked == False:
+                    clicked = True
+                if event.type == pygame.MOUSEBUTTONUP and clicked == True:
+                    clicked = False
+                    # Get mouse position
+                    pos = pygame.mouse.get_pos()
+                    # Check for clicked Play Again and restart
+                    if play[1].collidepoint(pos) and players[0].game_over:
+                        reset = True
+                            
+            # Moves All Snakes
+            for snake in players:
+                # Checks for Game Over Condition
+                if snake.game_over:
+                    if len(players) > 1:
+                        players.remove(snake)
+
+                else:
+                    snake.move_snake()
+                    
+                    # Lowers or refills Ghost Meter based on use
+                    if ghost_mode_on:
+                        if snake.is_ghost:
+                            if snake.ghost_time > 0:
+                                snake.ghost_time -= 1
+                            else:
+                                snake.is_ghost = False
+                                snake.ghostify()
+                        elif snake.ghost_time < ghost_timer:
+                            snake.ghost_time += 1
+
+            # Updates Score to Display next Player
+            if len(players) > 1:
+                if time.time() - score_timer > score_cycle_speed:
+                    score_timer = time.time()
+                    score_cycle = (score_cycle + 1) % len(players)
+            else:
+                score_cycle = 0
+
+            draw_score()
+
+            # Food Handler
+            for num in food:
+                num.make_food()
+                num.draw_food()
+
+                # Check if Snake ate Food
+                for snake in players:
+                    num.food_eaten(snake)
+
+            # Check for Game Over
+            if len(players) < 2 and players[0].game_over:
+                draw_gameover()
+
+            # Refresh the Screen
+            pygame.display.update()
 
 # Program End
 pygame.quit()
